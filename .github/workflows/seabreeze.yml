@@ -1,0 +1,45 @@
+# GitHub Actions workflow: runs the Seabreeze logger twice a day on GitHub's
+# servers and saves the new data back into this repository.
+# Times are UTC. 00:50 / 12:50 UTC = 11:50 am / 11:50 pm Sydney summer time
+# (AEDT); in winter (AEST) they land at 10:50 am / 10:50 pm.
+name: Seabreeze logger
+
+on:
+  schedule:
+    - cron: "50 0 * * *"
+    - cron: "50 12 * * *"
+  workflow_dispatch:        # adds a "Run workflow" button for manual runs
+
+permissions:
+  contents: write           # lets the job commit the new data
+
+concurrency:
+  group: seabreeze-logger
+  cancel-in-progress: false
+
+jobs:
+  log:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Record the forecast page
+        run: python3 seabreeze_logger.py
+
+      - name: Save new data to the repository
+        if: always()        # also saves logger.log when a run fails
+        run: |
+          git config user.name "seabreeze-logger"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing new to save."
+            exit 0
+          fi
+          git commit -m "Seabreeze data $(TZ=Australia/Sydney date '+%Y-%m-%d %H:%M')"
+          for i in 1 2 3; do
+            git pull --rebase && git push && exit 0
+            sleep 10
+          done
+          exit 1
