@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seabreeze Archive</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f4f4f1;
+  --surface-1: #fcfcfb;
+  --border: #e3e2dc;
+  --grid: #ecebe6;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #7a7974;
+  --accent: #2a78d6;
+  --highlight: rgba(42, 120, 214, 0.08);
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #111110;
+    --surface-1: #1a1a19;
+    --border: #2e2d2a;
+    --grid: #262624;
+    --text-primary: #f0efec;
+    --text-secondary: #c3c2b7;
+    --text-muted: #8f8e86;
+    --accent: #3987e5;
+    --highlight: rgba(57, 135, 229, 0.13);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #111110;
+  --surface-1: #1a1a19;
+  --border: #2e2d2a;
+  --grid: #262624;
+  --text-primary: #f0efec;
+  --text-secondary: #c3c2b7;
+  --text-muted: #8f8e86;
+  --accent: #3987e5;
+  --highlight: rgba(57, 135, 229, 0.13);
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text-primary);
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 48px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-bottom: 14px; }
+h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
+.sub { color: var(--text-secondary); font-size: 13px; }
+.controls {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 12px; position: sticky; top: 0; z-index: 5;
+}
+.controls label { font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
+input[type=date], select, button {
+  font: inherit; font-size: 14px; color: var(--text-primary); background: var(--bg);
+  border: 1px solid var(--border); border-radius: 7px; padding: 6px 10px; min-height: 36px;
+}
+button { cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.spacer { flex: 1; }
+.range { font-size: 13px; color: var(--text-secondary); width: 100%; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 14px 0; }
+.card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.card h3 { margin: 0 0 4px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+.big { font-size: 24px; font-weight: 650; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.big small { font-size: 14px; font-weight: 500; color: var(--text-secondary); }
+.line { font-size: 13px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.panel { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 14px 14px 8px; margin-bottom: 12px; }
+.panel h2 { font-size: 15px; margin: 0; }
+.panel .note { font-size: 12.5px; color: var(--text-muted); margin: 2px 0 8px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--text-secondary); margin-bottom: 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 18px; height: 0; border-top: 2px solid; display: inline-block; }
+.sw.dash { border-top-style: dashed; }
+.chart { position: relative; height: 240px; }
+.chart.short { height: 150px; }
+.chart.dir { height: 74px; margin-top: 2px; }
+.empty { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; color: var(--text-muted); font-size: 13px; text-align: center; padding: 0 20px; }
+.chart.is-empty .empty { display: flex; }
+.chart.is-empty canvas { visibility: hidden; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th { color: var(--text-muted); font-weight: 600; font-size: 12px; }
+td.num, th.num { text-align: right; }
+.tablewrap { overflow-x: auto; }
+details { margin-top: 6px; }
+summary { cursor: pointer; font-size: 13px; color: var(--text-secondary); padding: 6px 0; }
+#status { margin: 14px 0; padding: 14px; border-radius: 10px; background: var(--surface-1); border: 1px solid var(--border); }
+#status[hidden] { display: none; }
+#status p { margin: 0 0 8px; }
+.muted { color: var(--text-muted); }
+.arrow { display: inline-block; font-size: 14px; line-height: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Seabreeze archive</h1>
+    <span class="sub" id="sub">Sydney (Coastal) · recorded twice daily</span>
+  </header>
+
+  <div class="controls" role="search">
+    <button id="prev" aria-label="Previous day">&larr;</button>
+    <label>Date <input type="date" id="date"></label>
+    <button id="next" aria-label="Next day">&rarr;</button>
+    <button id="latest">Latest</button>
+    <span class="spacer"></span>
+    <label>Wind station <select id="station"></select></label>
+    <div class="range" id="range"></div>
+  </div>
+
+  <div id="status" hidden></div>
+
+  <main id="main" hidden>
+    <section class="cards" aria-label="Summary for the selected date">
+      <div class="card"><h3>Wind</h3><div class="big" id="c-wind"></div><div class="line" id="c-wind2"></div></div>
+      <div class="card"><h3>Gusts</h3><div class="big" id="c-gust"></div><div class="line" id="c-gust2"></div></div>
+      <div class="card"><h3>Swell</h3><div class="big" id="c-swell"></div><div class="line" id="c-swell2"></div></div>
+      <div class="card"><h3>Tides · Fort Denison</h3><div class="line" id="c-tide"></div></div>
+      <div class="card"><h3>Forecast for the day</h3><div class="line" id="c-fc"></div></div>
+    </section>
+
+    <section class="panel">
+      <h2>Wind</h2>
+      <div class="note" id="wind-note"></div>
+      <div class="legend">
+        <span><i class="sw" style="color:var(--series-1)"></i>Observed wind</span>
+        <span><i class="sw" style="color:var(--series-2)"></i>Observed gust</span>
+        <span><i class="sw dash" style="color:var(--series-3)"></i>Forecast wind</span>
+        <span class="muted">Arrows below: direction every 3 h (6 h on phones), pointing where the wind blows to</span>
+      </div>
+      <div class="chart" id="wrap-wind"><canvas id="ch-wind" aria-label="Wind speed and gusts over seven days"></canvas><div class="empty">No wind recorded or forecast for these days.</div></div>
+      <div class="chart dir" id="wrap-dir"><canvas id="ch-dir" aria-label="Wind direction every three hours"></canvas><div class="empty">No direction data.</div></div>
+    </section>
+
+    <section class="panel">
+      <h2>Swell height</h2>
+      <div class="note">From the forecast issued closest beforehand (the page has no measured swell). Arrows point where the swell travels.</div>
+      <div class="chart" id="wrap-wave"><canvas id="ch-wave" aria-label="Swell height over seven days"></canvas><div class="empty">No swell data for these days.</div></div>
+    </section>
+
+    <section class="panel">
+      <h2>Swell period</h2>
+      <div class="chart short" id="wrap-period"><canvas id="ch-period" aria-label="Swell period over seven days"></canvas><div class="empty">No swell data for these days.</div></div>
+    </section>
+
+    <section class="panel">
+      <h2>Tide · Fort Denison</h2>
+      <div class="note">Dots mark high and low water.</div>
+      <div class="chart" id="wrap-tide"><canvas id="ch-tide" aria-label="Tide height over seven days"></canvas><div class="empty">No tide data for these days.</div></div>
+    </section>
+
+    <section class="panel">
+      <h2>All stations on the selected date</h2>
+      <div class="tablewrap"><table id="t-stations"></table></div>
+      <details>
+        <summary>Show the selected date's readings as a table</summary>
+        <div class="tablewrap"><table id="t-day"></table></div>
+      </details>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+(function () {
+  "use strict";
+  var FILES = ["obs_wind", "forecast_wind_wave", "obs_tide", "forecast_tide", "forecast_daily"];
+  var HOUR = 3600e3, DAY = 24 * HOUR;
+  var DIRS = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+  var DATA = {};
+  var charts = {};
+  var state = { date: null, station: null };
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ---------- parsing ----------
+  function parseCSV(text) {
+    var rows = [], row = [], f = "", q = false, i, c;
+    for (i = 0; i < text.length; i++) {
+      c = text[i];
+      if (q) {
+        if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; }
+        else f += c;
+      } else if (c === '"') q = true;
+      else if (c === ",") { row.push(f); f = ""; }
+      else if (c === "\n" || c === "\r") {
+        if (c === "\r" && text[i + 1] === "\n") i++;
+        row.push(f); f = ""; if (row.length > 1 || row[0] !== "") rows.push(row); row = [];
+      } else f += c;
+    }
+    if (f !== "" || row.length) { row.push(f); rows.push(row); }
+    if (!rows.length) return [];
+    var head = rows[0];
+    return rows.slice(1).map(function (r) {
+      var o = {}; head.forEach(function (h, k) { o[h] = r[k] === undefined ? "" : r[k]; }); return o;
+    });
+  }
+  // Times are Sydney local wall-clock; keep them as "fake UTC" so no timezone shifts happen.
+  function t(s) {
+    if (!s) return NaN;
+    return Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10), +(s.slice(11, 13) || 0), +(s.slice(14, 16) || 0));
+  }
+  function num(v) { return v === "" || v == null ? null : +v; }
+  function dayKey(ms) { return new Date(ms).toISOString().slice(0, 10); }
+  function hm(ms) { var d = new Date(ms); return pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes()); }
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  var WD = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"], MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function dayLabel(ms, long) {
+    var d = new Date(ms);
+    return WD[d.getUTCDay()] + " " + d.getUTCDate() + " " + MO[d.getUTCMonth()] + (long ? " " + d.getUTCFullYear() : "");
+  }
+  function deg(dir) { var i = DIRS.indexOf((dir || "").trim().toUpperCase()); return i < 0 ? null : i * 22.5; }
+  function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+  // ---------- data prep ----------
+  function prepare() {
+    DATA.wind = DATA.obs_wind.map(function (r) {
+      return { st: r.station, t: t(r.time_local), w: num(r.wind_kn), g: num(r.gust_kn), dir: r.wind_dir };
+    }).filter(function (r) { return !isNaN(r.t); });
+    DATA.stations = Array.from(new Set(DATA.wind.map(function (r) { return r.st; })));
+
+    // For each forecast time keep the issue captured most recently before it
+    // (or the earliest one available if every capture is later).
+    DATA.fc = bestIssue(DATA.forecast_wind_wave, "valid_local", function (r, ms) {
+      return { t: ms, w: num(r.wind_kn), wdir: r.wind_dir, h: num(r.wave_height_m), hdir: r.wave_dir, p: num(r.wave_period_s) };
+    });
+    var tideObs = DATA.obs_tide.map(function (r) { return { t: t(r.time_local), h: num(r.tide_height_m) }; });
+    var tideFc = bestIssue(DATA.forecast_tide, "valid_local", function (r, ms) { return { t: ms, h: num(r.tide_height_m) }; });
+    var m = new Map();
+    tideFc.forEach(function (p) { m.set(p.t, p); });
+    tideObs.forEach(function (p) { if (!isNaN(p.t)) m.set(p.t, p); });
+    DATA.tide = Array.from(m.values()).sort(function (a, b) { return a.t - b.t; });
+
+    DATA.daily = {};
+    DATA.forecast_daily.forEach(function (r) {
+      var cap = t(r.captured_local), dayStart = t(r.date + " 00:00");
+      var cur = DATA.daily[r.date];
+      var better = !cur ||
+        (cap <= dayStart + DAY && (cur.cap > dayStart + DAY || cap > cur.cap)) ||
+        (cur.cap > dayStart + DAY && cap > dayStart + DAY && cap < cur.cap);
+      if (better) DATA.daily[r.date] = { cap: cap, r: r };
+    });
+
+    var all = DATA.wind.map(function (r) { return r.t; });
+    DATA.fc.forEach(function (r) { all.push(r.t); });
+    DATA.minDay = dayKey(Math.min.apply(null, all.length ? all : [Date.now()]));
+    DATA.maxDay = dayKey(Math.max.apply(null, all.length ? all : [Date.now()]));
+    DATA.latestObs = DATA.wind.length ? dayKey(Math.max.apply(null, DATA.wind.map(function (r) { return r.t; }))) : DATA.maxDay;
+  }
+  function bestIssue(rows, validCol, make) {
+    var by = new Map();
+    rows.forEach(function (r) {
+      var v = t(r[validCol]), c = t(r.captured_local);
+      if (isNaN(v)) return;
+      var cur = by.get(v);
+      var ok = c <= v, curOk = cur && cur.c <= v;
+      if (!cur || (ok && (!curOk || c > cur.c)) || (!ok && !curOk && c < cur.c)) by.set(v, { c: c, r: r });
+    });
+    return Array.from(by.entries()).sort(function (a, b) { return a[0] - b[0]; })
+      .map(function (e) { return make(e[1].r, e[0]); });
+  }
+
+  // ---------- charts ----------
+  var shadePlugin = {
+    id: "shade",
+    beforeDatasetsDraw: function (chart) {
+      var o = chart.options.plugins.shade; if (!o) return;
+      var x = chart.scales.x, a = chart.chartArea, ctx = chart.ctx;
+      ctx.save();
+      ctx.fillStyle = css("--highlight");
+      var x0 = Math.max(x.getPixelForValue(o.from), a.left), x1 = Math.min(x.getPixelForValue(o.to), a.right);
+      ctx.fillRect(x0, a.top, x1 - x0, a.bottom - a.top);
+      ctx.strokeStyle = css("--border"); ctx.lineWidth = 1;
+      for (var d = o.min; d <= o.max; d += DAY) {
+        var px = Math.round(x.getPixelForValue(d)) + 0.5;
+        ctx.beginPath(); ctx.moveTo(px, a.top); ctx.lineTo(px, a.bottom); ctx.stroke();
+      }
+      ctx.restore();
+    }
+  };
+  var crossPlugin = {
+    id: "cross",
+    afterDatasetsDraw: function (chart) {
+      var act = chart.tooltip && chart.tooltip.getActiveElements();
+      if (!act || !act.length) return;
+      var x = act[0].element.x, a = chart.chartArea, ctx = chart.ctx;
+      ctx.save(); ctx.strokeStyle = css("--text-muted"); ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(x, a.top); ctx.lineTo(x, a.bottom); ctx.stroke(); ctx.restore();
+    }
+  };
+  if (window.Chart) Chart.register(shadePlugin, crossPlugin);
+
+  function baseOptions(min, max, ylabel, from, to, tipLabel) {
+    var muted = css("--text-muted"), grid = css("--grid");
+    return {
+      responsive: true, maintainAspectRatio: false, animation: false, parsing: false, normalized: true,
+      interaction: { mode: "nearest", axis: "x", intersect: false },
+      layout: { padding: { top: 6, right: 6 } },
+      scales: {
+        x: {
+          type: "linear", min: min, max: max,
+          grid: { display: false }, border: { color: css("--border") },
+          ticks: {
+            color: muted, font: { size: 11 }, maxRotation: 0, autoSkip: false,
+            stepSize: 12 * HOUR,
+            callback: function (v) {
+              if ((v - min) % DAY === 0) return v >= max ? "" : window.innerWidth < 640 ? WD[new Date(v).getUTCDay()].slice(0, 2) + " " + new Date(v).getUTCDate() : dayLabel(v);
+              return window.innerWidth < 640 ? "" : "noon";
+            }
+          },
+          afterBuildTicks: function (ax) {
+            var ticks = [];
+            for (var v = min; v <= max; v += 12 * HOUR) ticks.push({ value: v });
+            ax.ticks = ticks;
+          }
+        },
+        y: {
+          beginAtZero: true, min: 0, grid: { color: grid }, border: { display: false },
+          afterFit: function (ax) { ax.width = 62; },
+          ticks: { color: muted, font: { size: 11 }, maxTicksLimit: 6 },
+          title: { display: true, text: ylabel, color: muted, font: { size: 11 } }
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        shade: { from: from, to: to, min: min, max: max },
+        tooltip: {
+          backgroundColor: css("--surface-1"), titleColor: css("--text-primary"), bodyColor: css("--text-secondary"),
+          borderColor: css("--border"), borderWidth: 1, padding: 10, boxPadding: 4, usePointStyle: true,
+          callbacks: {
+            title: function (items) { return items.length ? dayLabel(items[0].parsed.x) + " " + hm(items[0].parsed.x) : ""; },
+            label: tipLabel
+          }
+        }
+      }
+    };
+  }
+  function arrowStyle(points, every, getDir) {
+    return {
+      pointStyle: "triangle",
+      pointRadius: function (c) { var p = points[c.dataIndex]; return p && c.dataIndex % every === 0 && getDir(p) != null ? 5 : 0; },
+      pointHoverRadius: 5,
+      pointRotation: function (c) { var p = points[c.dataIndex]; var d = p && getDir(p); return d == null ? 0 : d + 180; },
+      pointBorderWidth: 0
+    };
+  }
+  function line(label, pts, color, extra) {
+    return Object.assign({
+      label: label, data: pts.map(function (p) { return { x: p.x, y: p.y }; }),
+      borderColor: color, backgroundColor: color, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4,
+      tension: 0.25, spanGaps: 45 * 60e3
+    }, extra || {});
+  }
+  function draw(key, cfg, hasData) {
+    var wrap = $("wrap-" + key);
+    wrap.classList.toggle("is-empty", !hasData);
+    if (charts[key]) charts[key].destroy();
+    charts[key] = new Chart($("ch-" + key), cfg);
+  }
+
+  // ---------- render ----------
+  function render() {
+    var sel = t(state.date + " 00:00");
+    var min = sel - 3 * DAY, max = sel + 4 * DAY;
+    var inWin = function (p) { return p.t >= min && p.t <= max; };
+    var inDay = function (p) { return p.t >= sel && p.t < sel + DAY; };
+    $("range").textContent = "Showing " + dayLabel(min) + " – " + dayLabel(max - DAY, true) + " · selected day shaded";
+
+    // wind
+    var obs = DATA.wind.filter(function (r) { return r.st === state.station && inWin(r); }).sort(function (a, b) { return a.t - b.t; });
+    var fc = DATA.fc.filter(inWin);
+    var c1 = css("--series-1"), c2 = css("--series-2"), c3 = css("--series-3");
+    var obsW = obs.filter(function (r) { return r.w != null; });
+    var windDs = [
+      line("Observed wind", obsW.map(function (r) { return { x: r.t, y: r.w }; }), c1, { borderWidth: 1.75 }),
+      line("Observed gust", obs.filter(function (r) { return r.g != null; }).map(function (r) { return { x: r.t, y: r.g }; }), c2,
+        { borderWidth: 1.5 }),
+      line("Forecast wind", fc.filter(function (r) { return r.w != null; }).map(function (r) { return { x: r.t, y: r.w }; }), c3,
+        { borderDash: [5, 4], spanGaps: 4 * HOUR })
+    ];
+    windDs[0]._src = obsW; windDs[2]._src = fc.filter(function (r) { return r.w != null; });
+    draw("wind", { type: "line", data: { datasets: windDs },
+      options: baseOptions(min, max, "knots", sel, sel + DAY, function (it) {
+        var s = it.dataset._src, p = s && s[it.dataIndex];
+        var dir = it.datasetIndex === 0 && p ? " " + p.dir : it.datasetIndex === 2 && p ? " " + p.wdir : "";
+        return " " + it.dataset.label + ": " + it.parsed.y + " kn" + dir;
+      }) }, obs.length > 0 || windDs[2].data.length > 0);
+    var every3 = function (rows, dirKey) {
+      var seen = {}, out = [];
+      rows.forEach(function (r) {
+        var d = deg(r[dirKey]); if (d == null) return;
+        var step = (window.innerWidth < 640 ? 6 : 3) * HOUR, slot = Math.round(r.t / step);
+        if (seen[slot]) return; seen[slot] = 1;
+        out.push({ x: slot * step, d: d, dir: r[dirKey] });
+      });
+      return out.filter(function (p) { return p.x >= min && p.x <= max; });
+    };
+    var dObs = every3(obsW, "dir"), dFc = every3(fc, "wdir");
+    var arrows = function (label, pts, y, color) {
+      return { label: label, data: pts.map(function (p) { return { x: p.x, y: y }; }), _src: pts, showLine: false,
+        pointStyle: "triangle", pointRadius: window.innerWidth < 640 ? 4 : 5.5, pointHoverRadius: 7, borderWidth: 0,
+        backgroundColor: color, borderColor: color,
+        pointRotation: pts.map(function (p) { return p.d + 180; }) };
+    };
+    var dirOpts = baseOptions(min, max, "", sel, sel + DAY, function (it) {
+      return " " + it.dataset.label + ": from " + it.dataset._src[it.dataIndex].dir;
+    });
+    dirOpts.scales.x.ticks.display = false;
+    dirOpts.scales.y = { min: -0.6, max: 1.6, grid: { display: false }, border: { display: false },
+      afterFit: function (ax) { ax.width = 62; },
+      afterBuildTicks: function (ax) { ax.ticks = [{ value: 0 }, { value: 1 }]; },
+      ticks: { color: css("--text-muted"), font: { size: 10 }, callback: function (v) { return v === 1 ? "observed" : v === 0 ? "forecast" : ""; } } };
+    dirOpts.interaction = { mode: "nearest", intersect: true };
+    draw("dir", { type: "scatter", data: { datasets: [arrows("Observed wind", dObs, 1, c1), arrows("Forecast wind", dFc, 0, c3)] },
+      options: dirOpts }, dObs.length + dFc.length > 0);
+    $("wind-note").textContent = state.station + ": observed every 10 minutes, with the forecast for Sydney (Coastal) for comparison. Gaps mean no recording covered that time.";
+
+    // swell
+    var fw = fc.filter(function (r) { return r.h != null; });
+    var waveDs = [line("Swell height", fw.map(function (r) { return { x: r.t, y: r.h }; }), c1,
+      Object.assign(arrowStyle(fw, 2, function (r) { return deg(r.hdir); }), { spanGaps: 4 * HOUR }))];
+    waveDs[0]._src = fw;
+    draw("wave", { type: "line", data: { datasets: waveDs },
+      options: baseOptions(min, max, "metres", sel, sel + DAY, function (it) {
+        var p = it.dataset._src[it.dataIndex];
+        return " " + it.parsed.y.toFixed(2) + " m from " + p.hdir + ", " + (p.p != null ? p.p + " s" : "");
+      }) }, fw.length > 0);
+    var fp = fc.filter(function (r) { return r.p != null; });
+    draw("period", { type: "line", data: { datasets: [line("Swell period", fp.map(function (r) { return { x: r.t, y: r.p }; }), c1, { spanGaps: 4 * HOUR })] },
+      options: baseOptions(min, max, "seconds", sel, sel + DAY, function (it) { return " " + it.parsed.y + " s"; }) }, fp.length > 0);
+
+    // tide
+    var td = DATA.tide.filter(function (p) { return inWin(p) && p.h != null; });
+    var ext = extremes(td);
+    var tideDs = line("Tide", td.map(function (p) { return { x: p.t, y: p.h }; }), c1, {
+      spanGaps: 3 * HOUR,
+      pointRadius: function (c) { return ext.idx.has(c.dataIndex) ? 3.5 : 0; },
+      pointBackgroundColor: css("--surface-1"), pointBorderColor: c1, pointBorderWidth: 2
+    });
+    var tOpts = baseOptions(min, max, "metres", sel, sel + DAY, function (it) {
+      var e = ext.idx.get(it.dataIndex);
+      return " " + it.parsed.y.toFixed(2) + " m" + (e ? " (" + e + ")" : "");
+    });
+    draw("tide", { type: "line", data: { datasets: [tideDs] }, options: tOpts }, td.length > 0);
+
+    // cards
+    var day = obs.filter(inDay);
+    var dw = day.filter(function (r) { return r.w != null; });
+    if (dw.length) {
+      var avg = dw.reduce(function (s, r) { return s + r.w; }, 0) / dw.length;
+      var mx = dw.reduce(function (a, r) { return r.w > a.w ? r : a; });
+      $("c-wind").innerHTML = avg.toFixed(0) + " <small>kn average</small>";
+      $("c-wind2").textContent = "Mostly " + mode(dw.map(function (r) { return r.dir; })) + " · peak " + mx.w + " kn at " + hm(mx.t) +
+        " · " + coverage(day) ;
+    } else { $("c-wind").innerHTML = "<small>No readings</small>"; $("c-wind2").textContent = state.station; }
+    var dg = day.filter(function (r) { return r.g != null; });
+    if (dg.length) {
+      var mg = dg.reduce(function (a, r) { return r.g > a.g ? r : a; });
+      $("c-gust").innerHTML = mg.g + " <small>kn max</small>";
+      $("c-gust2").textContent = "at " + hm(mg.t) + " from " + mg.dir;
+    } else { $("c-gust").innerHTML = "<small>No readings</small>"; $("c-gust2").textContent = ""; }
+    var dsw = fw.filter(inDay);
+    if (dsw.length) {
+      var hs = dsw.map(function (r) { return r.h; }), ps = dsw.filter(function (r) { return r.p != null; }).map(function (r) { return r.p; });
+      $("c-swell").innerHTML = span(hs, 1) + " <small>m</small>";
+      $("c-swell2").textContent = "Mostly from " + mode(dsw.map(function (r) { return r.hdir; })) +
+        (ps.length ? " · " + span(ps, 0) + " s period" : "");
+    } else { $("c-swell").innerHTML = "<small>No data</small>"; $("c-swell2").textContent = ""; }
+    var te = ext.list.filter(function (e) { return e.t >= sel && e.t < sel + DAY; });
+    $("c-tide").innerHTML = te.length ? te.map(function (e) {
+      return "<div>" + (e.kind === "high" ? "High" : "Low") + " " + hm(e.t) + " · " + e.h.toFixed(2) + " m</div>";
+    }).join("") : "No tide data";
+    var dly = DATA.daily[state.date];
+    $("c-fc").innerHTML = dly ? esc(dly.r.summary) + "<br>" + esc(dly.r.temp_min_c) + "–" + esc(dly.r.temp_max_c) + " °C · rain " +
+      esc(dly.r.rain_chance_pct) + "% (" + esc(dly.r.rain_amount) + ")<br><span class='muted'>issued " + esc(dly.r.captured_local) + "</span>" : "No forecast recorded";
+
+    stationTable(sel);
+    dayTable(day, fw.filter(inDay), td.filter(inDay));
+    try { history.replaceState(null, "", "#" + state.date + "/" + encodeURIComponent(state.station)); } catch (e) {}
+  }
+  function extremes(td) {
+    var idx = new Map(), list = [];
+    for (var i = 1; i < td.length - 1; i++) {
+      var a = td[i - 1].h, b = td[i].h, c = td[i + 1].h;
+      if (td[i + 1].t - td[i - 1].t > 4 * HOUR) continue;
+      var kind = b >= a && b > c ? "high" : b <= a && b < c ? "low" : null;
+      if (kind) { idx.set(i, kind); list.push({ t: td[i].t, h: b, kind: kind }); }
+    }
+    return { idx: idx, list: list };
+  }
+  function span(arr, dp) {
+    var a = Math.min.apply(null, arr).toFixed(dp), b = Math.max.apply(null, arr).toFixed(dp);
+    return a === b ? a : a + "–" + b;
+  }
+  function mode(arr) {
+    var c = {}, best = null;
+    arr.forEach(function (v) { if (!v) return; c[v] = (c[v] || 0) + 1; if (!best || c[v] > c[best]) best = v; });
+    return best || "–";
+  }
+  function coverage(rows) {
+    if (!rows.length) return "";
+    var h = rows.length / 6;
+    return h >= 23 ? "full day recorded" : Math.round(h) + " h recorded";
+  }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+  function stationTable(sel) {
+    var rows = DATA.stations.map(function (st) {
+      var d = DATA.wind.filter(function (r) { return r.st === st && r.t >= sel && r.t < sel + DAY; });
+      var w = d.filter(function (r) { return r.w != null; }), g = d.filter(function (r) { return r.g != null; });
+      var mg = g.length ? g.reduce(function (a, r) { return r.g > a.g ? r : a; }) : null;
+      return "<tr><td>" + esc(st) + "</td><td class='num'>" + (w.length ? (w.reduce(function (s, r) { return s + r.w; }, 0) / w.length).toFixed(0) : "–") +
+        "</td><td class='num'>" + (w.length ? Math.max.apply(null, w.map(function (r) { return r.w; })) : "–") +
+        "</td><td class='num'>" + (mg ? mg.g + " <span class='muted'>at " + hm(mg.t) + "</span>" : "–") +
+        "</td><td>" + mode(d.map(function (r) { return r.dir; })) + "</td><td class='num'>" + (d.length ? coverage(d) : "–") + "</td></tr>";
+    });
+    $("t-stations").innerHTML = "<thead><tr><th>Station</th><th class='num'>Avg wind (kn)</th><th class='num'>Max wind (kn)</th><th class='num'>Max gust (kn)</th><th>Mostly from</th><th class='num'>Coverage</th></tr></thead><tbody>" + rows.join("") + "</tbody>";
+  }
+  function dayTable(obs, sw, td) {
+    var byHour = {};
+    function slot(ms) { var k = hm(ms).slice(0, 2) + ":00"; return byHour[k] = byHour[k] || { w: [], g: [], d: [], h: [], p: [], dir: [], tide: [] }; }
+    obs.forEach(function (r) { var s = slot(r.t); if (r.w != null) s.w.push(r.w); if (r.g != null) s.g.push(r.g); s.d.push(r.dir); });
+    sw.forEach(function (r) { var s = slot(r.t); s.h.push(r.h); if (r.p != null) s.p.push(r.p); s.dir.push(r.hdir); });
+    td.forEach(function (r) { slot(r.t).tide.push(r.h); });
+    var avg = function (a, n) { return a.length ? (a.reduce(function (x, y) { return x + y; }, 0) / a.length).toFixed(n) : "–"; };
+    var body = Object.keys(byHour).sort().map(function (k) {
+      var s = byHour[k];
+      return "<tr><td>" + k + "</td><td class='num'>" + avg(s.w, 0) + "</td><td class='num'>" + (s.g.length ? Math.max.apply(null, s.g) : "–") +
+        "</td><td>" + mode(s.d) + "</td><td class='num'>" + avg(s.h, 2) + "</td><td class='num'>" + avg(s.p, 1) + "</td><td>" + (s.dir.length ? mode(s.dir) : "–") +
+        "</td><td class='num'>" + avg(s.tide, 2) + "</td></tr>";
+    });
+    $("t-day").innerHTML = "<thead><tr><th>Hour</th><th class='num'>Wind (kn)</th><th class='num'>Gust (kn)</th><th>Wind from</th><th class='num'>Swell (m)</th><th class='num'>Period (s)</th><th>Swell from</th><th class='num'>Tide (m)</th></tr></thead><tbody>" +
+      (body.join("") || "<tr><td colspan='8' class='muted'>Nothing recorded for this date.</td></tr>") + "</tbody>";
+  }
+
+  // ---------- controls ----------
+  function setDate(d) {
+    if (!d) return;
+    state.date = d; $("date").value = d; render();
+  }
+  function shift(n) { setDate(dayKey(t(state.date + " 00:00") + n * DAY)); }
+  function start() {
+    prepare();
+    $("status").hidden = true; $("main").hidden = false;
+    var sel = $("station");
+    sel.innerHTML = DATA.stations.map(function (s) { return "<option>" + esc(s) + "</option>"; }).join("");
+    var h = decodeURIComponent(location.hash.slice(1)).split("/");
+    state.station = DATA.stations.indexOf(h[1]) >= 0 ? h[1] : (DATA.stations.indexOf("North Head") >= 0 ? "North Head" : DATA.stations[0]);
+    sel.value = state.station;
+    $("date").min = DATA.minDay; $("date").max = DATA.maxDay;
+    $("sub").textContent = "Sydney (Coastal) · data from " + dayLabel(t(DATA.minDay), true) + " to " + dayLabel(t(DATA.maxDay), true);
+    setDate(/^\d{4}-\d\d-\d\d$/.test(h[0]) ? h[0] : DATA.latestObs);
+  }
+  $("prev").onclick = function () { shift(-1); };
+  $("next").onclick = function () { shift(1); };
+  $("latest").onclick = function () { setDate(DATA.latestObs); };
+  $("date").onchange = function (e) { setDate(e.target.value); };
+  $("station").onchange = function (e) { state.station = e.target.value; render(); };
+  document.addEventListener("keydown", function (e) {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT" || !state.date) return;
+    if (e.key === "ArrowLeft") shift(-1);
+    if (e.key === "ArrowRight") shift(1);
+  });
+  var resizeTimer;
+  window.addEventListener("resize", function () { clearTimeout(resizeTimer); resizeTimer = setTimeout(function () { if (state.date) render(); }, 200); });
+  if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function () { if (state.date) render(); });
+
+  // ---------- loading ----------
+  function showStatus(html) { var s = $("status"); s.innerHTML = html; s.hidden = false; }
+  function loadFetch() {
+    return Promise.all(FILES.map(function (f) {
+      return fetch("data/" + f + ".csv", { cache: "no-store" }).then(function (r) {
+        if (!r.ok) throw new Error(f + ".csv: HTTP " + r.status);
+        return r.text();
+      }).then(function (txt) { DATA[f] = parseCSV(txt); });
+    }));
+  }
+  function askForFolder(reason) {
+    showStatus("<p><strong>Choose your data folder to view it.</strong></p>" +
+      "<p class='muted'>" + esc(reason) + " Pick the <code>data</code> folder inside <code>seabreeze-logger</code>.</p>" +
+      "<input type='file' id='pick' webkitdirectory directory multiple>");
+    $("pick").onchange = function (e) {
+      var files = Array.from(e.target.files), jobs = [];
+      FILES.forEach(function (f) {
+        var file = files.find(function (x) { return x.name === f + ".csv"; });
+        DATA[f] = [];
+        if (file) jobs.push(file.text().then(function (txt) { DATA[f] = parseCSV(txt); }));
+      });
+      if (!jobs.length) { askForFolder("That folder has no Seabreeze CSV files."); return; }
+      Promise.all(jobs).then(go);
+    };
+  }
+  function go() {
+    try { start(); } catch (err) { showStatus("<p>Could not read the data: " + esc(err.message) + "</p>"); console.error(err); }
+  }
+  if (!window.Chart) { showStatus("<p>The chart library did not load. Check your internet connection and reload.</p>"); return; }
+  showStatus("<p class='muted'>Loading data…</p>");
+  if (location.protocol === "file:") askForFolder("Opened from your computer, so the browser needs permission to read the files.");
+  else loadFetch().then(go).catch(function (err) { askForFolder("The data files could not be fetched (" + err.message + ")."); });
+})();
+</script>
+</body>
+</html>
