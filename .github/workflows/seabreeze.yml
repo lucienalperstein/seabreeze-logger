@@ -1,13 +1,12 @@
-# GitHub Actions workflow: runs the Seabreeze logger four times a day on
-# GitHub's servers and saves the new data back into this repository.
-# Times are UTC. 00:50 / 06:50 / 12:50 / 18:50 UTC = 11:50 am / 5:50 pm /
-# 11:50 pm / 5:50 am Sydney summer time (AEDT); an hour earlier in winter.
-# Each run captures the last 12 hours, so one dropped run loses nothing.
+# GitHub Actions workflow: runs the Seabreeze logger twice a day on GitHub's
+# servers and saves the new data back into this repository.
+# 11:50 am and 11:50 pm Sydney time, following daylight saving.
 name: Seabreeze logger
 
 on:
   schedule:
-    - cron: "50 0,6,12,18 * * *"
+    - cron: "50 11,23 * * *"
+      timezone: "Australia/Sydney"
   workflow_dispatch:        # adds a "Run workflow" button for manual runs
 
 permissions:
