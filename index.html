@@ -91,7 +91,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .sw.dash { border-top-style: dashed; }
 .chart { position: relative; height: 240px; }
 .chart.short { height: 150px; }
-.chart.dir { height: 74px; margin-top: 2px; }
+.chart.dir { height: 86px; margin-top: 2px; }
+.chart.dir.one { height: 50px; }
 .empty { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; color: var(--text-muted); font-size: 13px; text-align: center; padding: 0 20px; }
 .chart.is-empty .empty { display: flex; }
 .chart.is-empty canvas { visibility: hidden; }
@@ -144,16 +145,16 @@ summary { cursor: pointer; font-size: 13px; color: var(--text-secondary); paddin
         <span><i class="sw" style="color:var(--series-1)"></i>Observed wind</span>
         <span><i class="sw" style="color:var(--series-2)"></i>Observed gust</span>
         <span><i class="sw dash" style="color:var(--series-3)"></i>Forecast wind</span>
-        <span class="muted">Arrows below: direction every 3 h (6 h on phones), pointing where the wind blows to</span>
+        <span class="muted">Arrows: direction every 3 h (6 h on phones), pointing where the wind blows to</span>
       </div>
       <div class="chart" id="wrap-wind"><canvas id="ch-wind" aria-label="Wind speed and gusts over seven days"></canvas><div class="empty">No wind recorded or forecast for these days.</div></div>
-      <div class="chart dir" id="wrap-dir"><canvas id="ch-dir" aria-label="Wind direction every three hours"></canvas><div class="empty">No direction data.</div></div>
     </section>
 
     <section class="panel">
       <h2>Swell height</h2>
-      <div class="note">From the forecast issued closest beforehand (the page has no measured swell). Arrows point where the swell travels.</div>
+      <div class="note">From the forecast issued closest beforehand (the page has no measured swell). Arrows below: direction every 3 h (6 h on phones), pointing where the swell travels.</div>
       <div class="chart" id="wrap-wave"><canvas id="ch-wave" aria-label="Swell height over seven days"></canvas><div class="empty">No swell data for these days.</div></div>
+      <div class="chart dir one" id="wrap-sdir"><canvas id="ch-sdir" aria-label="Swell direction every three hours"></canvas><div class="empty">No direction data.</div></div>
     </section>
 
     <section class="panel">
@@ -305,7 +306,33 @@ summary { cursor: pointer; font-size: 13px; color: var(--text-secondary); paddin
       ctx.beginPath(); ctx.moveTo(x, a.top); ctx.lineTo(x, a.bottom); ctx.stroke(); ctx.restore();
     }
   };
-  if (window.Chart) Chart.register(shadePlugin, crossPlugin);
+  // Draws a direction arrow (shaft + head) at chosen points of datasets that set _arrow.
+  var arrowPlugin = {
+    id: "arrows",
+    afterDatasetsDraw: function (chart) {
+      var ctx = chart.ctx, halo = css("--surface-1");
+      chart.data.datasets.forEach(function (ds, i) {
+        if (!ds._arrow) return;
+        var meta = chart.getDatasetMeta(i); if (meta.hidden) return;
+        var L = ds._arrowLen || 14, head = Math.max(4, L * 0.38);
+        meta.data.forEach(function (el, k) {
+          var d = ds._arrow(k); if (d == null) return;
+          ctx.save();
+          ctx.translate(el.x, el.y);
+          ctx.rotate((d + 180) * Math.PI / 180);   // from-direction -> pointing where it goes
+          ctx.lineCap = "round"; ctx.lineJoin = "round";
+          [[halo, 4], [ds._arrowColor, 1.75]].forEach(function (pass) {
+            ctx.strokeStyle = pass[0]; ctx.fillStyle = pass[0]; ctx.lineWidth = pass[1];
+            ctx.beginPath(); ctx.moveTo(0, L / 2); ctx.lineTo(0, -L / 2 + head * 0.6); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, -L / 2); ctx.lineTo(head * 0.55, -L / 2 + head); ctx.lineTo(-head * 0.55, -L / 2 + head); ctx.closePath();
+            if (pass[1] > 2) ctx.stroke(); else ctx.fill();
+          });
+          ctx.restore();
+        });
+      });
+    }
+  };
+  if (window.Chart) Chart.register(shadePlugin, crossPlugin, arrowPlugin);
 
   function baseOptions(min, max, ylabel, from, to, tipLabel) {
     var muted = css("--text-muted"), grid = css("--grid");
@@ -352,13 +379,20 @@ summary { cursor: pointer; font-size: 13px; color: var(--text-secondary); paddin
       }
     };
   }
-  function arrowStyle(points, every, getDir) {
+  function slotArrows(points, getDir, color) {
+    var step = (window.innerWidth < 640 ? 6 : 3) * HOUR, seen = {}, at = {};
+    points.forEach(function (p, k) {
+      var d = getDir(p); if (d == null) return;
+      var slot = Math.round(p.t / step);
+      if (seen[slot] == null || Math.abs(p.t - slot * step) < Math.abs(points[seen[slot]].t - slot * step)) seen[slot] = k;
+    });
+    Object.keys(seen).forEach(function (s) { at[seen[s]] = getDir(points[seen[s]]); });
+    return { _arrow: function (k) { return at[k] == null ? null : at[k]; }, _arrowColor: color, _arrowLen: window.innerWidth < 640 ? 13 : 17 };
+  }
+  function arrowStyle(points, every, getDir, color) {
     return {
-      pointStyle: "triangle",
-      pointRadius: function (c) { var p = points[c.dataIndex]; return p && c.dataIndex % every === 0 && getDir(p) != null ? 5 : 0; },
-      pointHoverRadius: 5,
-      pointRotation: function (c) { var p = points[c.dataIndex]; var d = p && getDir(p); return d == null ? 0 : d + 180; },
-      pointBorderWidth: 0
+      _arrow: function (k) { var p = points[k]; return p && k % every === 0 ? getDir(p) : null; },
+      _arrowColor: color, _arrowLen: window.innerWidth < 640 ? 11 : 15
     };
   }
   function line(label, pts, color, extra) {
@@ -389,11 +423,13 @@ summary { cursor: pointer; font-size: 13px; color: var(--text-secondary); paddin
     var c1 = css("--series-1"), c2 = css("--series-2"), c3 = css("--series-3");
     var obsW = obs.filter(function (r) { return r.w != null; });
     var windDs = [
-      line("Observed wind", obsW.map(function (r) { return { x: r.t, y: r.w }; }), c1, { borderWidth: 1.75 }),
+      line("Observed wind", obsW.map(function (r) { return { x: r.t, y: r.w }; }), c1,
+        Object.assign({ borderWidth: 1.75 }, slotArrows(obsW, function (r) { return deg(r.dir); }, c1))),
       line("Observed gust", obs.filter(function (r) { return r.g != null; }).map(function (r) { return { x: r.t, y: r.g }; }), c2,
         { borderWidth: 1.5 }),
       line("Forecast wind", fc.filter(function (r) { return r.w != null; }).map(function (r) { return { x: r.t, y: r.w }; }), c3,
-        { borderDash: [5, 4], spanGaps: 4 * HOUR })
+        Object.assign({ borderDash: [5, 4], spanGaps: 4 * HOUR },
+          slotArrows(fc.filter(function (r) { return r.w != null; }), function (r) { return deg(r.wdir); }, c3)))
     ];
     windDs[0]._src = obsW; windDs[2]._src = fc.filter(function (r) { return r.w != null; });
     draw("wind", { type: "line", data: { datasets: windDs },
@@ -412,36 +448,41 @@ summary { cursor: pointer; font-size: 13px; color: var(--text-secondary); paddin
       });
       return out.filter(function (p) { return p.x >= min && p.x <= max; });
     };
-    var dObs = every3(obsW, "dir"), dFc = every3(fc, "wdir");
     var arrows = function (label, pts, y, color) {
       return { label: label, data: pts.map(function (p) { return { x: p.x, y: y }; }), _src: pts, showLine: false,
-        pointStyle: "triangle", pointRadius: window.innerWidth < 640 ? 4 : 5.5, pointHoverRadius: 7, borderWidth: 0,
+        pointRadius: 0, pointHoverRadius: 0, pointHitRadius: 8, borderWidth: 0,
         backgroundColor: color, borderColor: color,
-        pointRotation: pts.map(function (p) { return p.d + 180; }) };
+        _arrow: function (k) { return pts[k] ? pts[k].d : null; }, _arrowColor: color,
+        _arrowLen: window.innerWidth < 640 ? 12 : 17 };
     };
-    var dirOpts = baseOptions(min, max, "", sel, sel + DAY, function (it) {
-      return " " + it.dataset.label + ": from " + it.dataset._src[it.dataIndex].dir;
-    });
-    dirOpts.scales.x.ticks.display = false;
-    dirOpts.scales.y = { min: -0.6, max: 1.6, grid: { display: false }, border: { display: false },
-      afterFit: function (ax) { ax.width = 62; },
-      afterBuildTicks: function (ax) { ax.ticks = [{ value: 0 }, { value: 1 }]; },
-      ticks: { color: css("--text-muted"), font: { size: 10 }, callback: function (v) { return v === 1 ? "observed" : v === 0 ? "forecast" : ""; } } };
-    dirOpts.interaction = { mode: "nearest", intersect: true };
-    draw("dir", { type: "scatter", data: { datasets: [arrows("Observed wind", dObs, 1, c1), arrows("Forecast wind", dFc, 0, c3)] },
-      options: dirOpts }, dObs.length + dFc.length > 0);
+    var strip = function (key, rows) {
+      var o = baseOptions(min, max, "", sel, sel + DAY, function (it) {
+        return " " + it.dataset.label + ": from " + it.dataset._src[it.dataIndex].dir;
+      });
+      var names = {}; rows.forEach(function (r) { names[r[2]] = r[4]; });
+      o.scales.x.ticks.display = false;
+      o.scales.y = { min: -0.7, max: rows.length - 0.3, grid: { display: false }, border: { display: false },
+        afterFit: function (ax) { ax.width = 62; },
+        afterBuildTicks: function (ax) { ax.ticks = rows.map(function (r) { return { value: r[2] }; }); },
+        ticks: { color: css("--text-muted"), font: { size: 10 }, callback: function (v) { return names[v] || ""; } } };
+      o.interaction = { mode: "nearest", intersect: true };
+      draw(key, { type: "scatter", data: { datasets: rows.map(function (r) { return arrows(r[0], r[1], r[2], r[3]); }) }, options: o },
+        rows.some(function (r) { return r[1].length > 0; }));
+    };
+
     $("wind-note").textContent = state.station + ": observed every 10 minutes, with the forecast for Sydney (Coastal) for comparison. Gaps mean no recording covered that time.";
 
     // swell
     var fw = fc.filter(function (r) { return r.h != null; });
     var waveDs = [line("Swell height", fw.map(function (r) { return { x: r.t, y: r.h }; }), c1,
-      Object.assign(arrowStyle(fw, 2, function (r) { return deg(r.hdir); }), { spanGaps: 4 * HOUR }))];
+      { spanGaps: 4 * HOUR })];
     waveDs[0]._src = fw;
     draw("wave", { type: "line", data: { datasets: waveDs },
       options: baseOptions(min, max, "metres", sel, sel + DAY, function (it) {
         var p = it.dataset._src[it.dataIndex];
         return " " + it.parsed.y.toFixed(2) + " m from " + p.hdir + ", " + (p.p != null ? p.p + " s" : "");
       }) }, fw.length > 0);
+    strip("sdir", [["Swell", every3(fw, "hdir"), 0, c1, "direction"]]);
     var fp = fc.filter(function (r) { return r.p != null; });
     draw("period", { type: "line", data: { datasets: [line("Swell period", fp.map(function (r) { return { x: r.t, y: r.p }; }), c1, { spanGaps: 4 * HOUR })] },
       options: baseOptions(min, max, "seconds", sel, sel + DAY, function (it) { return " " + it.parsed.y + " s"; }) }, fp.length > 0);
