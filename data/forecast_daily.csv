@@ -41,3 +41,10 @@ captured_local,forecast_updated_local,location,date,day_ahead,temp_min_c,temp_ma
 2026-11-20 18:49,2026-11-20 17:51,Sydney (Coastal),2026-11-24,4,19,24.7,Showers.,Shower,80,2.3 to 7.4 mm
 2026-11-20 18:49,2026-11-20 17:51,Sydney (Coastal),2026-11-25,5,17.5,23.5,Possible shower.,LightShower,40,0 to 1.3 mm
 2026-11-20 18:49,2026-11-20 17:51,Sydney (Coastal),2026-11-26,6,18.7,25.9,Shower or two.,Shower,60,0.7 to 6.8 mm
+2026-11-21 07:48,2026-11-21 05:22,Sydney (Coastal),2026-11-21,0,19.1,29,Possible shower.,LightShower,40,0.2 to 3 mm
+2026-11-21 07:48,2026-11-21 05:22,Sydney (Coastal),2026-11-22,1,20.4,30.8,Partly cloudy.,MostlySunnyPartlyCloudy,20,0 to 0.1 mm
+2026-11-21 07:48,2026-11-21 05:22,Sydney (Coastal),2026-11-23,2,23.2,32.7,Showers. Possible storm.,Storm,80,3.7 to 9.7 mm
+2026-11-21 07:48,2026-11-21 05:22,Sydney (Coastal),2026-11-24,3,18.2,24,Showers.,Shower,80,2.7 to 7.8 mm
+2026-11-21 07:48,2026-11-21 05:22,Sydney (Coastal),2026-11-25,4,17.5,23.4,Possible shower.,LightShower,40,0 to 1.2 mm
+2026-11-21 07:48,2026-11-21 05:22,Sydney (Coastal),2026-11-26,5,18.6,25.2,Shower or two.,Shower,50,0.2 to 4.1 mm
+2026-11-21 07:48,2026-11-21 05:22,Sydney (Coastal),2026-11-27,6,19.1,25.8,Shower or two.,Shower,60,0.5 to 5.7 mm
